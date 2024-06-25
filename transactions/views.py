@@ -12,19 +12,7 @@ from django.db.models import Sum
 from django.views import View
 from django.shortcuts import get_object_or_404,redirect
 from accounts.models import UserBankAccount
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
 # Create your views here.
-
-
-def send_transaction_email(user,amount,subject,template):
-        message = render_to_string(template,{
-            'user':user,
-            'amount': amount,
-        })
-        send_email = EmailMultiAlternatives(subject,'',to=[user.email])
-        send_email.attach_alternative(message,"text/html")
-        send_email.send()
 
 
 class TransactionCreateMixin(LoginRequiredMixin,CreateView):
@@ -67,7 +55,6 @@ class DepositMoneyView(TransactionCreateMixin):
                 'balance'
             ]
         )
-        send_transaction_email(self.request.user,amount,"Deposit Message","transactions/deposit_email.html")
         messages.success(
             self.request,
             f'{"{:,.2f}".format(float(amount))}$ was deposited to your account successfully'
@@ -95,7 +82,6 @@ class WithdrawMoneyView(TransactionCreateMixin):
             self.request,
             f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ form your account'
         )
-        send_transaction_email(self.request.user,amount,"Withdrawal Message","transactions/withdrawal_email.html")
 
         return super().form_valid(form)
     
@@ -118,7 +104,6 @@ class LoanRequestView(TransactionCreateMixin):
             self.request,
             f'Loan request for {"{:,.2f}".format(float(amount))}$ submitted successfully'
         )
-        send_transaction_email(self.request.user,amount,"Loan Request Message","transactions/loan_email.html")
         return super().form_valid(form)
 
 class TransactionReportView(LoginRequiredMixin,ListView):
@@ -206,8 +191,6 @@ class TransferBalanceView(TransactionCreateMixin):
             receiver_account.save(update_fields=['balance'])
 
             messages.success(self.request, f'Successfully transferred {"{:,.2f}".format(float(amount))}$ form your account')
-            send_transaction_email(self.request.user,amount,"Transferred amount message","transactions/balance_transfer_email.html")
-            send_transaction_email(receiver_account.user,amount,"Received amount message","transactions/balance_received_email.html")
         else:
             messages.error(self.request, f'This account does not exist')
         return super().form_valid(form)
